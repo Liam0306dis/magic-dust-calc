@@ -54,7 +54,7 @@
 <body>
 <div class="wrap">
   <h1>Pet Dust Value Calculator</h1>
-  <div class="sub">Magic Garden · sell value in Magic Dust</div>
+  <div class="sub">Magic Garden · sell value in Magic Dust · verified against game bundle 642</div>
 
   <div class="card">
     <div class="row">
@@ -98,7 +98,28 @@
 
     <div class="foot">
       <b>Values are an estimate.</b> The game only shows a pet's weight rounded, so the dust figure can be off by a
-      little — most noticeable on high-value pets, where a tiny weight difference is worth thousands.
+      little — most noticeable on high-value pets, where a tiny weight difference is worth thousands. For the exact
+      amount.
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <h1 style="font-size:17px">Egg Batch Estimate</h1>
+    <div class="sub" style="margin-bottom:16px">Average Magic Dust from hatching &amp; selling a batch of eggs</div>
+    <div class="two">
+      <div class="row"><label>Egg type</label><select id="eggType"></select></div>
+      <div class="row"><label>Quantity</label><input id="eggQty" type="number" min="0" step="1" placeholder="e.g. 5000"></div>
+    </div>
+    <div class="result">
+      <div class="dust" id="eggDust">—</div>
+      <div class="maxnote" id="eggNote">pick an egg &amp; quantity</div>
+    </div>
+    <table class="br" id="eggBreak"></table>
+    <div class="foot">
+      Each pet hatches at a uniformly-random <b>targetScale</b> between 1× and its max
+      Since the roll is uniform, the main figure is the true <b>statistical average</b>
+      (midpoint size); the <b>range</b> spans an all-smallest to all-perfect batch. Includes the average
+      <b>mutation uplift</b> (1%&nbsp;Gold, 0.1%&nbsp;Rainbow ≈ ×1.29).
     </div>
   </div>
 </div>
@@ -273,6 +294,82 @@ $proj.addEventListener('input', calc);
 
 $species.value = 'Peacock';
 calc();
+
+// ── Egg batch estimate ──────────────────────────────────────────────────
+// faunaSpawnWeights per egg (game bundle 642). Weights sum to 100.
+const EGGS = {
+  CommonEgg:    {Worm:60, Snail:35, Bee:5},
+  UncommonEgg:  {Chicken:65, Bunny:25, Dragonfly:10},
+  RareEgg:      {Pig:80, Cow:15, Turkey:5},
+  LegendaryEgg: {Squirrel:60, Turtle:30, Goat:10},
+  MythicalEgg:  {Butterfly:75, Peacock:20, Capybara:5},
+  SnowEgg:      {SnowFox:75, Stoat:20, WhiteCaribou:5},
+  DawnEgg:      {Sheep:60, Horse:35, Ostrich:5},
+  HorseEgg:     {Pony:60, Horse:35, FireHorse:5},
+  ThunderEgg:   {Bat:60, Platypus:35, ThunderWolf:5},
+};
+const $eggType = document.getElementById('eggType');
+const $eggQty  = document.getElementById('eggQty');
+const $eggDust = document.getElementById('eggDust');
+const $eggNote = document.getElementById('eggNote');
+const $eggBreak= document.getElementById('eggBreak');
+
+// dust for a pet at a given scale, no mutation — same math as the calculator above
+const dustOf = (pet, scale) => {
+  const d = DATA[pet];
+  return Math.floor(100 * RAR[d.rarity] * Mh(d.hatch) * scale);
+};
+
+Object.keys(EGGS).forEach(e => {
+  const o = document.createElement('option');
+  o.value = e; o.textContent = e.replace('Egg', ' Egg');
+  $eggType.appendChild(o);
+});
+
+// Per-hatch mutation chances (game bundle 642): 1% Gold (×25 dust), 0.1% Rainbow (×50).
+const MUT_GOLD = 0.01, MUT_RAINBOW = 0.001;
+// Expected mutation multiplier per hatch (Gold/Rainbow mutually exclusive).
+const EMULT = (1 - MUT_GOLD - MUT_RAINBOW)*1 + MUT_GOLD*25 + MUT_RAINBOW*50;  // ≈ 1.289
+
+// A pet hatches with a random targetScale in [1, maxScale] (rolled server-side).
+// We don't have the exact distribution, so assume the midpoint (1+maxScale)/2 for
+// the expected value, and show the 1×→maxScale range as the spread.
+const avgScaleOf = pet => (1 + DATA[pet].maxScale) / 2;
+
+function eggCalc(){
+  const w = EGGS[$eggType.value];
+  const qty = Math.max(0, Math.floor(parseFloat($eggQty.value) || 0));
+  if(!w){ return; }
+  const total = Object.values(w).reduce((a,b)=>a+b,0);   // = 100
+  let perAvg = 0, perMin = 0, perMax = 0;
+  const rows = Object.entries(w).map(([pet,wt]) => {
+    const p = wt/total;
+    const da = dustOf(pet, avgScaleOf(pet)), dmin = dustOf(pet, 1), dmax = dustOf(pet, DATA[pet].maxScale);
+    perAvg += p*da; perMin += p*dmin; perMax += p*dmax;
+    return { pet, pct:wt, exp:qty*p, da, sub:qty*p*da };
+  }).sort((a,b)=> b.sub - a.sub || b.da - a.da);
+
+  const mutRow = `<tr><td>Mutation avg — <span class="pill">1% Gold ×25</span> <span class="pill">0.1% Rainbow ×50</span></td><td>× ${EMULT.toFixed(3)}</td></tr>`;
+
+  if(qty > 0){
+    const tot = Math.round(qty*perAvg*EMULT), lo = Math.round(qty*perMin*EMULT), hi = Math.round(qty*perMax*EMULT);
+    $eggDust.innerHTML = `${fmt(tot)} <small>dust</small>`;
+    $eggNote.innerHTML = `≈ ${fmt(Math.round(perAvg*EMULT))} dust/egg · range ${fmt(lo)} – ${fmt(hi)}`;
+    $eggBreak.innerHTML = rows.map(r =>
+      `<tr><td>${r.pet} <span class="pill">${r.pct}%</span></td>`+
+      `<td>${fmt(Math.round(r.exp))} × ${fmt(r.da)} = ${fmt(Math.round(r.sub))}</td></tr>`).join('')
+      + mutRow
+      + `<tr><td><b>Expected dust</b> (avg size)</td><td><b>${fmt(tot)}</b></td></tr>`;
+  } else {
+    $eggDust.innerHTML = '—';
+    $eggNote.innerHTML = `≈ ${fmt(Math.round(perAvg*EMULT))} dust per egg (avg size, incl. mutations)`;
+    $eggBreak.innerHTML = rows.map(r =>
+      `<tr><td>${r.pet} <span class="pill">${r.pct}%</span></td><td>${fmt(r.da)} each</td></tr>`).join('') + mutRow;
+  }
+}
+$eggType.addEventListener('change', eggCalc);
+$eggQty.addEventListener('input', eggCalc);
+eggCalc();
 </script>
 </body>
 </html>
