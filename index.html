@@ -1,1 +1,278 @@
-placeholder
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pet Dust Value Calculator</title>
+<style>
+  :root{
+    --bg:#12141a; --panel:#1b1e27; --panel2:#232733; --line:#2c3140;
+    --txt:#e7e9ee; --dim:#98a0b3; --accent:#c39bff; --accent2:#7ee0c0;
+    --gold:#ffcf5c; --rainbow:linear-gradient(90deg,#ff6b6b,#ffd93b,#6bd47e,#4db8ff,#c39bff);
+    --good:#7ee0c0; --warn:#ff9b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif;
+       display:flex;justify-content:center;padding:28px 16px 60px}
+  .wrap{width:100%;max-width:560px}
+  h1{font-size:20px;margin:0 0 2px;font-weight:650}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  label{display:block;font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--dim);margin:0 0 6px}
+  .row{margin-bottom:16px}
+  select,input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+        border-radius:9px;padding:11px 12px;font-size:15px;outline:none;-webkit-appearance:none;appearance:none}
+  select:focus,input:focus{border-color:var(--accent)}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:6px;padding:0;background:var(--line);border-radius:5px;margin-top:12px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg)}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg)}
+  .seg{display:flex;gap:8px}
+  .seg button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+        border-radius:9px;padding:10px;font-size:14px;cursor:pointer;transition:.12s;font-weight:600}
+  .seg button.on{color:#12141a}
+  .seg button[data-m="None"].on{background:var(--txt);border-color:var(--txt)}
+  .seg button[data-m="Gold"].on{background:var(--gold);border-color:var(--gold)}
+  .seg button[data-m="Rainbow"].on{background:var(--rainbow);border-color:transparent;color:#12141a}
+  .two{display:flex;gap:12px}
+  .two .row{flex:1}
+  .hint{font-size:12px;color:var(--dim);margin-top:6px}
+  .hint.warn{color:var(--warn)}
+  .result{margin-top:22px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:18px 20px;text-align:center}
+  .dust{font-size:38px;font-weight:750;letter-spacing:-.5px;line-height:1.1}
+  .dust small{font-size:16px;color:var(--dim);font-weight:500}
+  .maxnote{font-size:12px;color:var(--dim);margin-top:6px}
+  table.br{width:100%;border-collapse:collapse;margin-top:18px;font-size:13px}
+  table.br td{padding:6px 4px;border-top:1px solid var(--line)}
+  table.br td:last-child{text-align:right;font-variant-numeric:tabular-nums;color:var(--txt)}
+  table.br td:first-child{color:var(--dim)}
+  .pill{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:700;
+        background:var(--panel);border:1px solid var(--line)}
+  .foot{font-size:11.5px;color:var(--dim);margin-top:16px;line-height:1.6}
+  code{background:var(--panel2);padding:1px 5px;border-radius:5px;color:var(--accent2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Pet Dust Value Calculator</h1>
+  <div class="sub">Magic Garden · sell value in Magic Dust · verified against game bundle 642</div>
+
+  <div class="card">
+    <div class="row">
+      <label>Pet species</label>
+      <select id="species"></select>
+    </div>
+
+    <div class="two">
+      <div class="row">
+        <label>Weight (as shown)</label>
+        <input id="weight" type="number" step="0.01" min="0" placeholder="e.g. 1.75">
+      </div>
+      <div class="row">
+        <label>Strength (as shown)</label>
+        <input id="str" type="number" step="1" min="50" max="100" placeholder="50–100">
+      </div>
+    </div>
+
+    <div class="row">
+      <label>Mutation</label>
+      <div class="seg" id="mut">
+        <button data-m="None" class="on">None</button>
+        <button data-m="Gold">Gold</button>
+        <button data-m="Rainbow">Rainbow</button>
+      </div>
+      <div class="hint" id="hint"></div>
+    </div>
+
+    <div class="row" id="projRow" style="display:none">
+      <label>Project growth — STR <span id="projVal"></span></label>
+      <input id="proj" type="range" step="1">
+      <div class="hint" id="projHint"></div>
+    </div>
+
+    <div class="result">
+      <div class="dust" id="dust">—</div>
+      <div class="maxnote" id="maxnote"></div>
+    </div>
+
+    <table class="br" id="breakdown"></table>
+
+    <div class="foot">
+      <b>Values are an estimate.</b> The game only shows a pet's weight rounded, so the dust figure can be off by a
+      little — most noticeable on high-value pets, where a tiny weight difference is worth thousands.
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {"Worm":{"rarity":"Common","matureWeight":0.1,"maxScale":2,"hoursToMature":12,"hatch":60},"Snail":{"rarity":"Common","matureWeight":0.15,"maxScale":2,"hoursToMature":12,"hatch":35},"Bee":{"rarity":"Common","matureWeight":0.2,"maxScale":2.5,"hoursToMature":12,"hatch":5},"Chicken":{"rarity":"Uncommon","matureWeight":3,"maxScale":2,"hoursToMature":24,"hatch":65},"Bunny":{"rarity":"Uncommon","matureWeight":2,"maxScale":2,"hoursToMature":24,"hatch":25},"Dragonfly":{"rarity":"Uncommon","matureWeight":0.2,"maxScale":2.5,"hoursToMature":24,"hatch":10},"Pig":{"rarity":"Rare","matureWeight":200,"maxScale":2.5,"hoursToMature":72,"hatch":80},"Cow":{"rarity":"Rare","matureWeight":600,"maxScale":2.5,"hoursToMature":72,"hatch":15},"Turkey":{"rarity":"Rare","matureWeight":10,"maxScale":2.5,"hoursToMature":72,"hatch":5},"Squirrel":{"rarity":"Legendary","matureWeight":0.5,"maxScale":2,"hoursToMature":100,"hatch":60},"Turtle":{"rarity":"Legendary","matureWeight":150,"maxScale":2.5,"hoursToMature":100,"hatch":30},"Goat":{"rarity":"Legendary","matureWeight":100,"maxScale":2,"hoursToMature":100,"hatch":10},"SnowFox":{"rarity":"Legendary","matureWeight":7.5,"maxScale":2,"hoursToMature":100,"hatch":75},"Stoat":{"rarity":"Legendary","matureWeight":0.4,"maxScale":2,"hoursToMature":100,"hatch":20},"WhiteCaribou":{"rarity":"Legendary","matureWeight":300,"maxScale":2.5,"hoursToMature":100,"hatch":5},"Pony":{"rarity":"Legendary","matureWeight":200,"maxScale":2,"hoursToMature":72,"hatch":60},"Sheep":{"rarity":"Legendary","matureWeight":160,"maxScale":2.5,"hoursToMature":100,"hatch":60},"Horse":{"rarity":"Legendary","matureWeight":80,"maxScale":2.5,"hoursToMature":100,"hatch":35},"Ostrich":{"rarity":"Mythic","matureWeight":0.7,"maxScale":2.5,"hoursToMature":144,"hatch":5},"FireHorse":{"rarity":"Mythic","matureWeight":700,"maxScale":2.5,"hoursToMature":144,"hatch":5},"Butterfly":{"rarity":"Mythic","matureWeight":0.2,"maxScale":2.5,"hoursToMature":144,"hatch":75},"Peacock":{"rarity":"Mythic","matureWeight":5,"maxScale":2.5,"hoursToMature":144,"hatch":20},"Capybara":{"rarity":"Mythic","matureWeight":50,"maxScale":2.5,"hoursToMature":144,"hatch":5},"Bat":{"rarity":"Legendary","matureWeight":0.1,"maxScale":2,"hoursToMature":100,"hatch":60},"Platypus":{"rarity":"Legendary","matureWeight":2,"maxScale":2,"hoursToMature":100,"hatch":35},"ThunderWolf":{"rarity":"Mythic","matureWeight":30,"maxScale":2.5,"hoursToMature":144,"hatch":5}};
+const RAR = {Common:1,Uncommon:2,Rare:5,Legendary:10,Mythic:50};
+const RAR_ORDER = {Common:0,Uncommon:1,Rare:2,Legendary:3,Mythic:4};
+const fmt = n => n.toLocaleString('en-US');
+
+const $species = document.getElementById('species');
+const $weight  = document.getElementById('weight');
+const $str     = document.getElementById('str');
+const $hint    = document.getElementById('hint');
+const $dust    = document.getElementById('dust');
+const $maxnote = document.getElementById('maxnote');
+const $break   = document.getElementById('breakdown');
+const $mut     = document.getElementById('mut');
+const $projRow = document.getElementById('projRow');
+const $proj    = document.getElementById('proj');
+const $projVal = document.getElementById('projVal');
+const $projHint= document.getElementById('projHint');
+let mutation = 'None';
+let lastAnchor = '';   // species|weight|str — when it changes, reset the slider
+
+// Populate species dropdown, grouped by rarity
+Object.keys(DATA)
+  .sort((a,b)=> (RAR_ORDER[DATA[a].rarity]-RAR_ORDER[DATA[b].rarity]) || a.localeCompare(b))
+  .forEach(sp=>{
+    const d = DATA[sp];
+    const o = document.createElement('option');
+    o.value = sp;
+    o.textContent = `${sp}  ·  ${d.rarity}`;
+    $species.appendChild(o);
+  });
+
+const Mh = pct => pct>=50?1:(pct>10?2:5);
+
+// maxStrength curve: floor(80 + 20·(targetScale-1)/(maxScale-1)), clamped to [80,100].
+function maxStrOf(ts, maxScale){
+  if(ts<=1) return 80;
+  if(ts>=maxScale) return 100;
+  return Math.floor(80 + 20*(ts-1)/(maxScale-1));
+}
+// STR-only fallback: invert a fully-grown pet's STR back to its scale (band midpoint).
+function scaleFromStr(V, maxScale){
+  if(V>=100) return maxScale;
+  if(V<=80)  return 1;
+  return Math.min(maxScale, Math.max(1, 1 + (V-79.5)/20*(maxScale-1)));
+}
+
+function idle(d, maxWeight, maxDust){
+  $dust.innerHTML = '—';
+  $maxnote.textContent = `matureWeight ${d.matureWeight} · max scale ${d.maxScale} → max weight ${fmt(maxWeight)} · ceiling ${fmt(maxDust)} dust`;
+  $break.innerHTML = '';
+}
+
+function render(d, s, {mr,mh,mm,M,maxDust}, srcRow, approx, extra){
+  const dust = Math.floor(M*s);
+  $dust.innerHTML = `${approx?'≈ ':''}${fmt(dust)} <small>dust</small>`;
+  $maxnote.textContent = `${extra?extra+' · ':''}perfect-${d.name||'pet'} ceiling ${fmt(maxDust)} dust`;
+  $break.innerHTML = `
+    <tr><td>Base</td><td>100</td></tr>
+    <tr><td>Rarity — <span class="pill">${d.rarity}</span></td><td>× ${mr}</td></tr>
+    <tr><td>Hatch chance — ${d.hatch}%</td><td>× ${mh}</td></tr>
+    <tr><td>Mutation — ${mutation}</td><td>× ${mm}</td></tr>
+    <tr><td>${srcRow}</td><td>× ${s.toFixed(4)}</td></tr>
+    <tr><td><b>Dust</b></td><td><b>${approx?'≈ ':''}${fmt(dust)}</b></td></tr>`;
+}
+
+function calc(){
+  const sp = $species.value, d = DATA[sp];
+  if(!d) return;
+  d.name = sp;
+  const maxWeight = +(d.maxScale*d.matureWeight).toFixed(2);
+  $weight.placeholder = `e.g. ${fmt(maxWeight)}`;
+  const mr = RAR[d.rarity], mh = Mh(d.hatch), mm = mutation==='Rainbow'?50:(mutation==='Gold'?25:1);
+  const M = 100*mr*mh*mm, maxDust = Math.floor(M*d.maxScale);
+  const ctx = {mr,mh,mm,M,maxDust};
+
+  const w = parseFloat($weight.value), st = parseFloat($str.value);
+  const haveW = w>0, haveS = st>0;
+  $hint.textContent=''; $hint.className='hint';
+
+  // ── Weight + STR: anchor the pet, enable growth projection ──────────────
+  if(haveW && haveS){
+    const sNow = w/d.matureWeight;
+    if(sNow > d.maxScale+1e-9){
+      $hint.textContent = `⚠ weight ${fmt(w)} exceeds this species' max (${fmt(maxWeight)})`;
+      $hint.className='hint warn'; $projRow.style.display='none'; lastAnchor='';
+      idle(d,maxWeight,maxDust); return;
+    }
+    const k = sNow/st;                                   // targetScale / maxStr  (s = k·STR)
+    let maxStr = 100;                                    // solve the maxStr ↔ targetScale fixed point
+    for(let i=0;i<40;i++){ maxStr = maxStrOf(Math.min(d.maxScale, k*maxStr), d.maxScale); }
+    // A pet's current STR can't exceed its max STR — guard against the rounded
+    // weight inferring a maxStr just below the entered STR (which would clamp the
+    // slider off the anchor and undervalue it).
+    maxStr = Math.max(maxStr, Math.round(st));
+    const targetScale = Math.min(d.maxScale, k*maxStr);
+
+    const anchor = `${sp}|${w}|${st}`;
+    if(anchor !== lastAnchor){                           // re-anchored → reset slider to the entered STR
+      lastAnchor = anchor;
+      $proj.min = Math.max(1, maxStr-30);
+      $proj.max = 100;                                    // allow projecting up to a perfect (STR 100) pet
+      $proj.value = Math.min(maxStr, Math.max(maxStr-30, Math.round(st)));
+    }
+    $projRow.style.display = '';
+    const V = parseFloat($proj.value);
+
+    // Up to this pet's own maxStr it's real growth (s = k·V, anchored to the weight).
+    // Above that, STR is only reachable by a genetically-bigger pet — extrapolate the
+    // scale linearly from this pet's max toward the perfect (maxScale, STR 100) pet.
+    let s, est = false;
+    if(V <= maxStr){
+      s = k*V;
+    } else {
+      s = targetScale + (d.maxScale - targetScale) * (V - maxStr) / (100 - maxStr);
+      est = true;
+    }
+    const wV = +(s*d.matureWeight).toFixed(2);
+
+    $projVal.textContent = `${V} / max ${maxStr}`;
+    $projHint.textContent = `${est?'≈ ':'at '}STR ${V}: weight ≈ ${fmt(wV)}`;
+    render(d, s, ctx,
+      est ? `STR ${V} (est. bigger pet) → scale ${s.toFixed(3)}`
+          : `STR ${V} ⁄ maxStr ${maxStr} × scale ${targetScale.toFixed(3)}`,
+      est, `weight ≈ ${fmt(wV)}`);
+    return;
+  }
+
+  $projRow.style.display='none'; lastAnchor='';
+
+  // ── Weight only: exact current value ────────────────────────────────────
+  if(haveW){
+    const s = w/d.matureWeight;
+    if(s > d.maxScale+1e-9){
+      $hint.textContent = `⚠ weight exceeds this species' max (${fmt(maxWeight)})`;
+      $hint.className='hint warn'; idle(d,maxWeight,maxDust); return;
+    }
+    $hint.textContent = `exact value · add STR to project growth`;
+    render(d, s, ctx, `weight ${fmt(w)} ÷ matureWeight ${d.matureWeight}`, false, '');
+    return;
+  }
+
+  // ── STR only: assume fully grown, estimate from scale ───────────────────
+  if(haveS){
+    if(st<80 || st>100){
+      $hint.textContent = `⚠ STR-only needs a fully-grown pet's STR (80–100), or add its weight`;
+      $hint.className='hint warn'; idle(d,maxWeight,maxDust); return;
+    }
+    const s = scaleFromStr(st, d.maxScale), wV = +(s*d.matureWeight).toFixed(2);
+    $hint.textContent = `≈ fully-grown estimate · implied weight ≈ ${fmt(wV)}`;
+    render(d, s, ctx, `scale ≈ inferred from STR ${st}`, true, `weight ≈ ${fmt(wV)}`);
+    return;
+  }
+
+  idle(d,maxWeight,maxDust);
+}
+
+$mut.addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  mutation = b.dataset.m;
+  [...$mut.children].forEach(x=>x.classList.toggle('on', x===b));
+  calc();
+});
+$species.addEventListener('change', ()=>{ $weight.value=''; $str.value=''; lastAnchor=''; calc(); });
+$weight.addEventListener('input', calc);
+$str.addEventListener('input', calc);
+$proj.addEventListener('input', calc);
+
+$species.value = 'Peacock';
+calc();
+</script>
+</body>
+</html>
