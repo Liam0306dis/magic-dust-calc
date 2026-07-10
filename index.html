@@ -64,12 +64,23 @@
 
     <div class="two">
       <div class="row">
-        <label>Weight (as shown)</label>
-        <input id="weight" type="number" step="0.01" min="0" placeholder="e.g. 1.75">
+        <label>Current dust (as shown)</label>
+        <input id="currentDust" type="text" inputmode="decimal" placeholder="e.g. 197.6k or 197600">
       </div>
       <div class="row">
-        <label>Strength (as shown)</label>
+        <label>Weight (optional)</label>
+        <input id="weight" type="number" step="0.01" min="0" placeholder="e.g. 1.75">
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="row">
+        <label>Current Strength</label>
         <input id="str" type="number" step="1" min="50" max="100" placeholder="50–100">
+      </div>
+      <div class="row">
+        <label>Maximum Strength</label>
+        <input id="maxStr" type="number" step="1" min="80" max="100" placeholder="80–100">
       </div>
     </div>
 
@@ -97,15 +108,15 @@
     <table class="br" id="breakdown"></table>
 
     <div class="foot">
-      <b>Values are an estimate.</b> The game only shows a pet's weight rounded, so the dust figure can be off by a
-      little — most noticeable on high-value pets, where a tiny weight difference is worth thousands. For the exact
-      amount.
+      <b>Values are an estimate.</b> The game rounds pet weight and abbreviates large dust values. Abbreviated dust
+      inputs are projected as a range; weight-based estimates can still vary slightly. For the exact amount, check
+      the sell shop in-game. <b>Current dust is more accurate than weight</b> when both are available.
     </div>
   </div>
 
   <div class="card" style="margin-top:18px">
     <h1 style="font-size:17px">Egg Batch Estimate</h1>
-    <div class="sub" style="margin-bottom:16px">Average Magic Dust from hatching &amp; selling a batch of eggs</div>
+    <div class="sub" style="margin-bottom:16px">Estimated Magic Dust from hatching &amp; selling a batch of eggs</div>
     <div class="two">
       <div class="row"><label>Egg type</label><select id="eggType"></select></div>
       <div class="row"><label>Quantity</label><input id="eggQty" type="number" min="0" step="1" placeholder="e.g. 5000"></div>
@@ -116,9 +127,9 @@
     </div>
     <table class="br" id="eggBreak"></table>
     <div class="foot">
-      Each pet hatches at a uniformly-random <b>targetScale</b> between 1× and its max
-      Since the roll is uniform, the main figure is the true <b>statistical average</b>
-      (midpoint size); the <b>range</b> spans an all-smallest to all-perfect batch. Includes the average
+      Each pet hatches with a <b>targetScale</b> between 1× and its max.
+      The exact server distribution is not exposed, so the main figure uses the <b>midpoint estimate</b>;
+      the <b>range</b> spans an all-smallest to all-perfect batch. Includes the average
       <b>mutation uplift</b> (1%&nbsp;Gold, 0.1%&nbsp;Rainbow ≈ ×1.29).
     </div>
   </div>
@@ -131,8 +142,10 @@ const RAR_ORDER = {Common:0,Uncommon:1,Rare:2,Legendary:3,Mythic:4};
 const fmt = n => n.toLocaleString('en-US');
 
 const $species = document.getElementById('species');
+const $currentDust = document.getElementById('currentDust');
 const $weight  = document.getElementById('weight');
 const $str     = document.getElementById('str');
+const $maxStr  = document.getElementById('maxStr');
 const $hint    = document.getElementById('hint');
 const $dust    = document.getElementById('dust');
 const $maxnote = document.getElementById('maxnote');
@@ -158,17 +171,39 @@ Object.keys(DATA)
 
 const Mh = pct => pct>=50?1:(pct>10?2:5);
 
+// Full values are exact card inputs. Suffixed values are abbreviated display
+// buckets: 197.6k represents 197,600 through 197,699.
+function parseDisplayedDust(raw){
+  const text = String(raw||'').trim().toLowerCase().replace(/,/g,'');
+  const match = text.match(/^(\d+(?:\.\d+)?)\s*([kmb])?$/);
+  if(!match) return null;
+  const value = Number(match[1]);
+  if(!(value>0)) return null;
+  const mult = match[2]==='b' ? 1e9 : (match[2]==='m' ? 1e6 : (match[2]==='k' ? 1e3 : 1));
+  if(!match[2]) return {min:value, max:value, exact:true, label:fmt(value)};
+  const decimals = (match[1].split('.')[1]||'').length;
+  const step = mult/Math.pow(10,decimals);
+  const min = value*mult;
+  return {min, max:min+step, exact:false, label:`${fmt(min)}–${fmt(min+step-1)}`};
+}
+
 // maxStrength curve: floor(80 + 20·(targetScale-1)/(maxScale-1)), clamped to [80,100].
 function maxStrOf(ts, maxScale){
   if(ts<=1) return 80;
   if(ts>=maxScale) return 100;
   return Math.floor(80 + 20*(ts-1)/(maxScale-1));
 }
-// STR-only fallback: invert a fully-grown pet's STR back to its scale (band midpoint).
+// A displayed fully-grown STR is floored, so it identifies a scale band rather
+// than one exact scale. `max` is exclusive except for STR 100.
+function scaleRangeFromStr(V, maxScale){
+  if(V>=100) return {min:maxScale, max:maxScale, exact:true};
+  const min = Math.max(1, 1 + (V-80)/20*(maxScale-1));
+  const max = Math.min(maxScale, 1 + (V+1-80)/20*(maxScale-1));
+  return {min, max, exact:false};
+}
 function scaleFromStr(V, maxScale){
-  if(V>=100) return maxScale;
-  if(V<=80)  return 1;
-  return Math.min(maxScale, Math.max(1, 1 + (V-79.5)/20*(maxScale-1)));
+  const r = scaleRangeFromStr(V, maxScale);
+  return r.exact ? r.min : (r.min+r.max)/2;
 }
 
 function idle(d, maxWeight, maxDust){
@@ -177,9 +212,12 @@ function idle(d, maxWeight, maxDust){
   $break.innerHTML = '';
 }
 
-function render(d, s, {mr,mh,mm,M,maxDust}, srcRow, approx, extra){
+function render(d, s, {mr,mh,mm,M,maxDust}, srcRow, approx, extra, dustRange=null){
   const dust = Math.floor(M*s);
-  $dust.innerHTML = `${approx?'≈ ':''}${fmt(dust)} <small>dust</small>`;
+  const dustText = dustRange
+    ? (dustRange.min===dustRange.max ? fmt(dustRange.min) : `${fmt(dustRange.min)}–${fmt(dustRange.max)}`)
+    : `${approx?'≈ ':''}${fmt(dust)}`;
+  $dust.innerHTML = `${dustText} <small>dust</small>`;
   $maxnote.textContent = `${extra?extra+' · ':''}perfect-${d.name||'pet'} ceiling ${fmt(maxDust)} dust`;
   $break.innerHTML = `
     <tr><td>Base</td><td>100</td></tr>
@@ -187,7 +225,7 @@ function render(d, s, {mr,mh,mm,M,maxDust}, srcRow, approx, extra){
     <tr><td>Hatch chance — ${d.hatch}%</td><td>× ${mh}</td></tr>
     <tr><td>Mutation — ${mutation}</td><td>× ${mm}</td></tr>
     <tr><td>${srcRow}</td><td>× ${s.toFixed(4)}</td></tr>
-    <tr><td><b>Dust</b></td><td><b>${approx?'≈ ':''}${fmt(dust)}</b></td></tr>`;
+    <tr><td><b>Dust</b></td><td><b>${dustText}</b></td></tr>`;
 }
 
 function calc(){
@@ -200,9 +238,40 @@ function calc(){
   const M = 100*mr*mh*mm, maxDust = Math.floor(M*d.maxScale);
   const ctx = {mr,mh,mm,M,maxDust};
 
-  const w = parseFloat($weight.value), st = parseFloat($str.value);
-  const haveW = w>0, haveS = st>0;
+  const w = parseFloat($weight.value), st = parseFloat($str.value), maxSt = parseFloat($maxStr.value);
+  const dustInput = parseDisplayedDust($currentDust.value);
+  const haveW = w>0, haveS = st>0, haveMaxS = maxSt>0;
   $hint.textContent=''; $hint.className='hint';
+
+  // Primary projection: the current dust already includes species, size,
+  // rarity and mutations. Scale it by this same pet's Strength progression.
+  if(dustInput && haveS && haveMaxS){
+    $projRow.style.display='none'; lastAnchor='';
+    if(st>maxSt){
+      $hint.textContent = '⚠ current Strength cannot exceed maximum Strength';
+      $hint.className='hint warn'; idle(d,maxWeight,maxDust); return;
+    }
+    const ratio = maxSt/st;
+    let projectedText;
+    if(dustInput.exact){
+      projectedText = `≈ ${fmt(Math.round(dustInput.min*ratio))}`;
+    } else {
+      const lo = Math.floor(dustInput.min*ratio);
+      const hi = Math.ceil(dustInput.max*ratio)-1;
+      projectedText = lo===hi ? fmt(lo) : `${fmt(lo)}–${fmt(hi)}`;
+    }
+    $dust.innerHTML = `${projectedText} <small>dust</small>`;
+    $maxnote.textContent = `same pet projected from STR ${st} to its max ${maxSt}`;
+    $break.innerHTML = `
+      <tr><td>Current displayed dust</td><td>${dustInput.label}</td></tr>
+      <tr><td>Strength</td><td>${st} / ${maxSt}</td></tr>
+      <tr><td>Growth multiplier</td><td>× ${(ratio).toFixed(6)}</td></tr>
+      <tr><td><b>Projected max dust</b></td><td><b>${projectedText}</b></td></tr>`;
+    $hint.textContent = dustInput.exact
+      ? 'same-pet projection from the entered dust value'
+      : 'abbreviated dust treated as its full displayed range';
+    return;
+  }
 
   // ── Weight + STR: anchor the pet, enable growth projection ──────────────
   if(haveW && haveS){
@@ -266,15 +335,25 @@ function calc(){
     return;
   }
 
-  // ── STR only: assume fully grown, estimate from scale ───────────────────
+  // ── STR only: fully-grown scale/weight band ─────────────────────────────
   if(haveS){
     if(st<80 || st>100){
       $hint.textContent = `⚠ STR-only needs a fully-grown pet's STR (80–100), or add its weight`;
       $hint.className='hint warn'; idle(d,maxWeight,maxDust); return;
     }
-    const s = scaleFromStr(st, d.maxScale), wV = +(s*d.matureWeight).toFixed(2);
-    $hint.textContent = `≈ fully-grown estimate · implied weight ≈ ${fmt(wV)}`;
-    render(d, s, ctx, `scale ≈ inferred from STR ${st}`, true, `weight ≈ ${fmt(wV)}`);
+    const range = scaleRangeFromStr(st, d.maxScale);
+    const s = scaleFromStr(st, d.maxScale);
+    const wMin = +(range.min*d.matureWeight).toFixed(2);
+    const wMax = +(range.max*d.matureWeight).toFixed(2);
+    const dustMin = Math.floor(ctx.M*range.min);
+    const dustMax = range.exact ? dustMin : Math.ceil(ctx.M*range.max)-1;
+    const weightText = range.exact ? fmt(wMin) : `${fmt(wMin)} to under ${fmt(wMax)}`;
+    $hint.textContent = range.exact
+      ? `fully-grown exact weight ${weightText}`
+      : `fully-grown range · weight ${weightText}`;
+    render(d, s, ctx,
+      range.exact ? `scale ${s.toFixed(3)} from STR ${st}` : `scale ${range.min.toFixed(3)} to under ${range.max.toFixed(3)} from STR ${st}`,
+      !range.exact, `weight ${weightText}`, {min:dustMin,max:dustMax});
     return;
   }
 
@@ -287,16 +366,18 @@ $mut.addEventListener('click', e=>{
   [...$mut.children].forEach(x=>x.classList.toggle('on', x===b));
   calc();
 });
-$species.addEventListener('change', ()=>{ $weight.value=''; $str.value=''; lastAnchor=''; calc(); });
+$species.addEventListener('change', ()=>{ $weight.value=''; lastAnchor=''; calc(); });
+$currentDust.addEventListener('input', calc);
 $weight.addEventListener('input', calc);
 $str.addEventListener('input', calc);
+$maxStr.addEventListener('input', calc);
 $proj.addEventListener('input', calc);
 
 $species.value = 'Peacock';
 calc();
 
 // ── Egg batch estimate ──────────────────────────────────────────────────
-// faunaSpawnWeights per egg (game bundle 642). Weights sum to 100.
+// faunaSpawnWeights per egg (game bundle 691). Weights sum to 100.
 const EGGS = {
   CommonEgg:    {Worm:60, Snail:35, Bee:5},
   UncommonEgg:  {Chicken:65, Bunny:25, Dragonfly:10},
@@ -332,8 +413,8 @@ const MUT_GOLD = 0.01, MUT_RAINBOW = 0.001;
 const EMULT = (1 - MUT_GOLD - MUT_RAINBOW)*1 + MUT_GOLD*25 + MUT_RAINBOW*50;  // ≈ 1.289
 
 // A pet hatches with a random targetScale in [1, maxScale] (rolled server-side).
-// We don't have the exact distribution, so assume the midpoint (1+maxScale)/2 for
-// the expected value, and show the 1×→maxScale range as the spread.
+// We don't have the exact distribution, so use the midpoint (1+maxScale)/2 as an
+// estimate and show the 1×→maxScale range as the spread.
 const avgScaleOf = pet => (1 + DATA[pet].maxScale) / 2;
 
 function eggCalc(){
@@ -359,7 +440,7 @@ function eggCalc(){
       `<tr><td>${r.pet} <span class="pill">${r.pct}%</span></td>`+
       `<td>${fmt(Math.round(r.exp))} × ${fmt(r.da)} = ${fmt(Math.round(r.sub))}</td></tr>`).join('')
       + mutRow
-      + `<tr><td><b>Expected dust</b> (avg size)</td><td><b>${fmt(tot)}</b></td></tr>`;
+      + `<tr><td><b>Estimated dust</b> (midpoint size)</td><td><b>${fmt(tot)}</b></td></tr>`;
   } else {
     $eggDust.innerHTML = '—';
     $eggNote.innerHTML = `≈ ${fmt(Math.round(perAvg*EMULT))} dust per egg (avg size, incl. mutations)`;
