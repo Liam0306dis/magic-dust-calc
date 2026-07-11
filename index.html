@@ -49,6 +49,11 @@
         background:var(--panel);border:1px solid var(--line)}
   .foot{font-size:11.5px;color:var(--dim);margin-top:16px;line-height:1.6}
   code{background:var(--panel2);padding:1px 5px;border-radius:5px;color:var(--accent2)}
+  .calc-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+  .calc-link{display:block;padding:11px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--txt);text-decoration:none}
+  .calc-link:hover{border-color:var(--accent)}
+  .calc-link b{display:block;font-size:13px;margin-bottom:3px}
+  .calc-link span{display:block;font-size:11.5px;color:var(--dim);line-height:1.35}
 </style>
 </head>
 <body>
@@ -133,12 +138,23 @@
       <b>mutation uplift</b> (1%&nbsp;Gold, 0.1%&nbsp;Rainbow ≈ ×1.29).
     </div>
   </div>
+
+  <div class="card" style="margin-top:16px">
+    <label>Other tools</label>
+    <div class="calc-links">
+      <a class="calc-link" href="https://discord.com/channels/808935495543160852/1490498595219308785/1490498595219308785"><b>Garden Overview</b><span>Open the Garden Overview userscript post on Discord.</span></a>
+      <a class="calc-link" href="https://liam0306dis.github.io/petfood/"><b>Pet Feeding</b><span>Work out food plants and seeds needed to keep pets fed.</span></a>
+      <a class="calc-link" href="https://liam0306dis.github.io/magiccalc/"><b>Granter</b><span>Estimate pet ability chances, wait times, and egg growth boosts.</span></a>
+      <a class="calc-link" href="https://liam0306dis.github.io/capsule-calc/"><b>Dawn Capsule</b><span>Estimate capsules per Dawn and compare capture cadence options.</span></a>
+      <a class="calc-link" href="https://liam0306dis.github.io/farm-projection/"><b>Farm Projection</b><span>Project a farm's finished value and the time needed to get there.</span></a>
+    </div>
+  </div>
 </div>
 
 <script>
 const DATA = {"Worm":{"rarity":"Common","matureWeight":0.1,"maxScale":2,"hoursToMature":12,"hatch":60},"Snail":{"rarity":"Common","matureWeight":0.15,"maxScale":2,"hoursToMature":12,"hatch":35},"Bee":{"rarity":"Common","matureWeight":0.2,"maxScale":2.5,"hoursToMature":12,"hatch":5},"Chicken":{"rarity":"Uncommon","matureWeight":3,"maxScale":2,"hoursToMature":24,"hatch":65},"Bunny":{"rarity":"Uncommon","matureWeight":2,"maxScale":2,"hoursToMature":24,"hatch":25},"Dragonfly":{"rarity":"Uncommon","matureWeight":0.2,"maxScale":2.5,"hoursToMature":24,"hatch":10},"Pig":{"rarity":"Rare","matureWeight":200,"maxScale":2.5,"hoursToMature":72,"hatch":80},"Cow":{"rarity":"Rare","matureWeight":600,"maxScale":2.5,"hoursToMature":72,"hatch":15},"Turkey":{"rarity":"Rare","matureWeight":10,"maxScale":2.5,"hoursToMature":72,"hatch":5},"Squirrel":{"rarity":"Legendary","matureWeight":0.5,"maxScale":2,"hoursToMature":100,"hatch":60},"Turtle":{"rarity":"Legendary","matureWeight":150,"maxScale":2.5,"hoursToMature":100,"hatch":30},"Goat":{"rarity":"Legendary","matureWeight":100,"maxScale":2,"hoursToMature":100,"hatch":10},"SnowFox":{"rarity":"Legendary","matureWeight":7.5,"maxScale":2,"hoursToMature":100,"hatch":75},"Stoat":{"rarity":"Legendary","matureWeight":0.4,"maxScale":2,"hoursToMature":100,"hatch":20},"WhiteCaribou":{"rarity":"Legendary","matureWeight":300,"maxScale":2.5,"hoursToMature":100,"hatch":5},"Pony":{"rarity":"Legendary","matureWeight":200,"maxScale":2,"hoursToMature":72,"hatch":60},"Sheep":{"rarity":"Legendary","matureWeight":160,"maxScale":2.5,"hoursToMature":100,"hatch":60},"Horse":{"rarity":"Legendary","matureWeight":80,"maxScale":2.5,"hoursToMature":100,"hatch":35},"Ostrich":{"rarity":"Mythic","matureWeight":0.7,"maxScale":2.5,"hoursToMature":144,"hatch":5},"FireHorse":{"rarity":"Mythic","matureWeight":700,"maxScale":2.5,"hoursToMature":144,"hatch":5},"Butterfly":{"rarity":"Mythic","matureWeight":0.2,"maxScale":2.5,"hoursToMature":144,"hatch":75},"Peacock":{"rarity":"Mythic","matureWeight":5,"maxScale":2.5,"hoursToMature":144,"hatch":20},"Capybara":{"rarity":"Mythic","matureWeight":50,"maxScale":2.5,"hoursToMature":144,"hatch":5},"Bat":{"rarity":"Legendary","matureWeight":0.1,"maxScale":2,"hoursToMature":100,"hatch":60},"Platypus":{"rarity":"Legendary","matureWeight":2,"maxScale":2,"hoursToMature":100,"hatch":35},"ThunderWolf":{"rarity":"Mythic","matureWeight":30,"maxScale":2.5,"hoursToMature":144,"hatch":5}};
 const RAR = {Common:1,Uncommon:2,Rare:5,Legendary:10,Mythic:50};
-const RAR_ORDER = {Common:0,Uncommon:1,Rare:2,Legendary:3,Mythic:4};
+const PET_ORDER = ["Worm","Snail","Bee","Chicken","Bunny","Dragonfly","Pig","Cow","Turkey","SnowFox","Stoat","WhiteCaribou","Squirrel","Turtle","Goat","Sheep","Ostrich","Pony","Horse","FireHorse","Bat","Platypus","ThunderWolf","Butterfly","Peacock","Capybara"];
 const fmt = n => n.toLocaleString('en-US');
 
 const $species = document.getElementById('species');
@@ -158,9 +174,8 @@ const $projHint= document.getElementById('projHint');
 let mutation = 'None';
 let lastAnchor = '';   // species|weight|str — when it changes, reset the slider
 
-// Populate species dropdown, grouped by rarity
-Object.keys(DATA)
-  .sort((a,b)=> (RAR_ORDER[DATA[a].rarity]-RAR_ORDER[DATA[b].rarity]) || a.localeCompare(b))
+// Populate species dropdown in the same order used by Pet Feeding.
+PET_ORDER.filter(sp => DATA[sp])
   .forEach(sp=>{
     const d = DATA[sp];
     const o = document.createElement('option');
@@ -373,9 +388,6 @@ $str.addEventListener('input', calc);
 $maxStr.addEventListener('input', calc);
 $proj.addEventListener('input', calc);
 
-$species.value = 'Peacock';
-calc();
-
 // ── Egg batch estimate ──────────────────────────────────────────────────
 // faunaSpawnWeights per egg (game bundle 691). Weights sum to 100.
 const EGGS = {
@@ -450,7 +462,28 @@ function eggCalc(){
 }
 $eggType.addEventListener('change', eggCalc);
 $eggQty.addEventListener('input', eggCalc);
-eggCalc();
+
+function resetInitialState() {
+  $species.value = 'Worm';
+  $currentDust.value = '';
+  $weight.value = '';
+  $str.value = '';
+  $maxStr.value = '';
+  mutation = 'None';
+  [...$mut.children].forEach(b => b.classList.toggle('on', b.dataset.m === 'None'));
+  lastAnchor = '';
+  $proj.value = '';
+  $projVal.textContent = '';
+  $projHint.textContent = '';
+  $projRow.style.display = 'none';
+  $eggType.value = 'CommonEgg';
+  $eggQty.value = '';
+  calc();
+  eggCalc();
+}
+
+resetInitialState();
+window.addEventListener('pageshow', resetInitialState);
 </script>
 </body>
 </html>
