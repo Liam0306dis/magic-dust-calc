@@ -67,9 +67,35 @@
     .calc-link{flex-basis:100%;max-width:none}
   }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style id="mg-theme">
+  /* Shared look for every Magic Garden tool, loaded after the page's own styles so these win. */
+  :root {
+    --bg:#0d1010; --panel:#151a18; --panel2:#1c231f; --line:rgba(255,255,255,.09);
+    --text:#eef2ef; --txt:#eef2ef; --dim:#a7b0aa; --faint:#7d8880;
+    --accent:#b89cff; --accent2:#7ee0c0; --good:#65d69a; --gold:#f5c542; --warn:#fbbf24; --bad:#f87171;
+  }
+  html { color-scheme:dark; }
+  body {
+    background:radial-gradient(900px 420px at 50% -160px, rgba(184,156,255,.11), transparent 70%) no-repeat, var(--bg);
+    font-family:"Outfit",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  .card { box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 8px 24px rgba(0,0,0,.18); }
+  .mg-nav { display:flex; margin:0 0 16px; }
+  .mg-nav a { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border:1px solid var(--line); border-radius:999px; background:var(--panel); color:var(--dim); font-size:12.5px; text-decoration:none; }
+  .mg-nav a:hover { color:var(--text); border-color:var(--accent); }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  input:focus, select:focus, textarea:focus { border-color:var(--accent); }
+  .calc-link { transition:border-color .15s, background .15s; }
+  .calc-link:hover { border-color:var(--accent); }
+  .calc-link b::after { content:" \2197"; color:var(--faint); font-weight:400; }
+</style>
 </head>
 <body>
 <div class="wrap">
+  <nav class="mg-nav" aria-label="Site"><a href="https://liam0306dis.github.io/hub/">&larr; All Magic Garden tools</a></nav>
   <h1>Pet Dust Value Calculator</h1>
   <div class="sub">Magic Garden · sell value in Magic Dust</div>
 
@@ -154,15 +180,13 @@
   <div class="card" style="margin-top:16px">
     <label>Other tools</label>
     <div class="calc-links">
-      <a class="calc-link" href="https://discord.com/channels/808935495543160852/1532163413738782740/1532163413738782740"><b>Garden Companion</b><span>Open the Garden Companion userscript post on Discord.</span></a>
-      <a class="calc-link" href="https://discord.com/channels/808935495543160852/1490498595219308785/1490498595219308785"><b>Garden Overview</b><span>Open the Garden Overview userscript post on Discord.</span></a>
-      <a class="calc-link" href="https://discord.com/channels/808935495543160852/1526739574896722082/1526739574896722082"><b>Coin Finder Silencer</b><span>Open the Coin Finder Silencer userscript post on Discord.</span></a>
-      <a class="calc-link" href="https://discord.com/channels/808935495543160852/1527680568630968411/1527680568630968411"><b>Drag to Move Plants</b><span>Open the Drag to Move Plants userscript post on Discord.</span></a>
-      <a class="calc-link" href="https://liam0306dis.github.io/petfood/"><b>Pet Feeding</b><span>See which is the best food for your pets and work out how many food plants/seeds you will go through.</span></a>
-      <a class="calc-link" href="https://liam0306dis.github.io/magiccalc/"><b>Granter</b><span>Estimate pet ability chances, wait times, and egg growth boosts.</span></a>
-      <a class="calc-link" href="https://liam0306dis.github.io/celestial-layout/"><b>Celestial Placement</b><span>Plan celestial placements with Dawn and Amber mutation coverage.</span></a>
-      <a class="calc-link" href="https://liam0306dis.github.io/capsule-calc/"><b>Dawn Capsule</b><span>Estimate capsules per Dawn and compare capture cadence options.</span></a>
+      <a class="calc-link" href="https://discord.com/channels/808935495543160852/1532163413738782740/1532163413738782740"><b>Garden Companion</b><span>Open the Garden Companion userscript post on Discord. Includes the old Garden Overview, Coin Finder Silencer and Drag to Move Plants.</span></a>
+      <a class="calc-link" href="https://liam0306dis.github.io/petfood/"><b>Pet Feeding</b><span>Find the best food for your pets and how many plants or seeds they get through.</span></a>
+      <a class="calc-link" href="https://liam0306dis.github.io/hunger/"><b>Pet Hunger</b><span>Check whether Hunger Restore and Hunger Boost keep a pet team fed.</span></a>
+      <a class="calc-link" href="https://liam0306dis.github.io/magiccalc/"><b>Granter &amp; Abilities</b><span>Pet ability chances, wait times, and growth and hatch boosts.</span></a>
+      <a class="calc-link" href="https://liam0306dis.github.io/capsule-calc/"><b>Capsules</b><span>Expected Dawn and Amber capsules and the best capture cadence.</span></a>
       <a class="calc-link" href="https://liam0306dis.github.io/farm-projection/"><b>Farm Projection</b><span>Project a farm's finished value and the time needed to get there.</span></a>
+      <a class="calc-link" href="https://liam0306dis.github.io/celestial-layout/"><b>Celestial Placement</b><span>Plan celestial placements with Dawn and Amber mutation coverage.</span></a>
       <a class="calc-link" href="https://liam0306dis.github.io/garden-layout/"><b>Garden Layout Planner</b><span>Plan your whole farm layout - plants, mutations and decorations.</span></a>
     </div>
   </div>
@@ -170,6 +194,8 @@
 
 <script>
 const DATA = {"Worm":{"rarity":"Common","matureWeight":0.1,"maxScale":2,"hoursToMature":12,"hatch":65},"Snail":{"rarity":"Common","matureWeight":0.15,"maxScale":2,"hoursToMature":12,"hatch":30},"Bee":{"rarity":"Common","matureWeight":0.2,"maxScale":2.5,"hoursToMature":12,"hatch":5},"Chicken":{"rarity":"Uncommon","matureWeight":3,"maxScale":2,"hoursToMature":24,"hatch":65},"Bunny":{"rarity":"Uncommon","matureWeight":2,"maxScale":2,"hoursToMature":24,"hatch":30},"Dragonfly":{"rarity":"Uncommon","matureWeight":0.2,"maxScale":2.5,"hoursToMature":24,"hatch":5},"Pig":{"rarity":"Rare","matureWeight":200,"maxScale":2.5,"hoursToMature":72,"hatch":65},"Cow":{"rarity":"Rare","matureWeight":600,"maxScale":2.5,"hoursToMature":72,"hatch":30},"Turkey":{"rarity":"Rare","matureWeight":10,"maxScale":2.5,"hoursToMature":72,"hatch":5},"Squirrel":{"rarity":"Legendary","matureWeight":0.5,"maxScale":2,"hoursToMature":100,"hatch":65},"Turtle":{"rarity":"Legendary","matureWeight":150,"maxScale":2.5,"hoursToMature":100,"hatch":30},"Goat":{"rarity":"Legendary","matureWeight":100,"maxScale":2,"hoursToMature":100,"hatch":5},"SnowFox":{"rarity":"Legendary","matureWeight":7.5,"maxScale":2,"hoursToMature":100,"hatch":65},"Stoat":{"rarity":"Legendary","matureWeight":0.4,"maxScale":2,"hoursToMature":100,"hatch":30},"WhiteCaribou":{"rarity":"Legendary","matureWeight":300,"maxScale":2.5,"hoursToMature":100,"hatch":5},"Pony":{"rarity":"Legendary","matureWeight":200,"maxScale":2,"hoursToMature":72,"hatch":65},"Sheep":{"rarity":"Legendary","matureWeight":160,"maxScale":2.5,"hoursToMature":100,"hatch":65},"Horse":{"rarity":"Legendary","matureWeight":80,"maxScale":2.5,"hoursToMature":100,"hatch":30},"Ostrich":{"rarity":"Mythic","matureWeight":0.7,"maxScale":2.5,"hoursToMature":144,"hatch":5},"FireHorse":{"rarity":"Mythic","matureWeight":700,"maxScale":2.5,"hoursToMature":144,"hatch":5},"Butterfly":{"rarity":"Mythic","matureWeight":0.2,"maxScale":2.5,"hoursToMature":144,"hatch":65},"Peacock":{"rarity":"Mythic","matureWeight":5,"maxScale":2.5,"hoursToMature":144,"hatch":30},"Capybara":{"rarity":"Mythic","matureWeight":50,"maxScale":2.5,"hoursToMature":144,"hatch":5},"Bat":{"rarity":"Legendary","matureWeight":0.1,"maxScale":2,"hoursToMature":100,"hatch":65},"Platypus":{"rarity":"Legendary","matureWeight":2,"maxScale":2,"hoursToMature":100,"hatch":30},"ThunderWolf":{"rarity":"Mythic","matureWeight":30,"maxScale":2.5,"hoursToMature":144,"hatch":5},"Rooster":{"rarity":"Mythic","matureWeight":4,"maxScale":2.5,"hoursToMature":144,"hatch":60},"RedFox":{"rarity":"Mythic","matureWeight":8,"maxScale":2.5,"hoursToMature":144,"hatch":33},"Phoenix":{"rarity":"Divine","matureWeight":3,"maxScale":2.5,"hoursToMature":168,"hatch":2}};
+const PET_NAMES = {"Worm":"Worm","Snail":"Snail","Bee":"Bee","Chicken":"Chicken","Bunny":"Bunny","Dragonfly":"Dragonfly","Pig":"Pig","Cow":"Cow","Turkey":"Turkey","Squirrel":"Squirrel","Turtle":"Turtle","Goat":"Goat","SnowFox":"Snow Fox","Stoat":"Stoat","WhiteCaribou":"Caribou","Pony":"Pony","Sheep":"Sheep","Horse":"Horse","Ostrich":"Ostrich","FireHorse":"Fire Horse","Rooster":"Rooster","RedFox":"Red Fox","Phoenix":"Phoenix","Butterfly":"Butterfly","Peacock":"Peacock","Capybara":"Capybara","Bat":"Bat","Platypus":"Platypus","ThunderWolf":"Thunder Wolf"};
+const petName = id => PET_NAMES[id] || id;
 const RAR = {Common:1,Uncommon:2,Rare:5,Legendary:10,Mythic:50,Divine:50,Celestial:100};
 const PET_ORDER = ["Worm","Snail","Bee","Chicken","Bunny","Dragonfly","Pig","Cow","Turkey","SnowFox","Stoat","WhiteCaribou","Squirrel","Turtle","Goat","Sheep","Ostrich","Pony","Horse","FireHorse","Bat","Platypus","ThunderWolf","Butterfly","Peacock","Capybara","Rooster","RedFox","Phoenix"];
 const fmt = n => n.toLocaleString('en-US');
@@ -197,7 +223,7 @@ PET_ORDER.filter(sp => DATA[sp])
     const d = DATA[sp];
     const o = document.createElement('option');
     o.value = sp;
-    o.textContent = `${sp}  ·  ${d.rarity}`;
+    o.textContent = `${petName(sp)}  ·  ${d.rarity}`;
     $species.appendChild(o);
   });
 
@@ -263,7 +289,7 @@ function render(d, s, {mr,mh,mm,M,maxDust}, srcRow, approx, extra, dustRange=nul
 function calc(){
   const sp = $species.value, d = DATA[sp];
   if(!d) return;
-  d.name = sp;
+  d.name = petName(sp);
   const maxWeight = +(d.maxScale*d.matureWeight).toFixed(2);
   $weight.placeholder = `e.g. ${fmt(maxWeight)}`;
   const mr = RAR[d.rarity], mh = Mh(d.hatch), mm = mutation==='Rainbow'?50:(mutation==='Gold'?25:1);
@@ -468,7 +494,7 @@ function eggCalc(){
     $eggDust.innerHTML = `${fmt(tot)} <small>dust</small>`;
     $eggNote.innerHTML = `≈ ${fmt(Math.round(perAvg*EMULT))} dust/egg · range ${fmt(lo)} – ${fmt(hi)}`;
     $eggBreak.innerHTML = rows.map(r =>
-      `<tr><td>${r.pet} <span class="pill">${r.pct}%</span></td>`+
+      `<tr><td>${petName(r.pet)} <span class="pill">${r.pct}%</span></td>`+
       `<td>${fmt(Math.round(r.exp))} × ${fmt(r.da)} = ${fmt(Math.round(r.sub))}</td></tr>`).join('')
       + mutRow
       + `<tr><td><b>Estimated dust</b> (midpoint size)</td><td><b>${fmt(tot)}</b></td></tr>`;
@@ -476,7 +502,7 @@ function eggCalc(){
     $eggDust.innerHTML = '—';
     $eggNote.innerHTML = `≈ ${fmt(Math.round(perAvg*EMULT))} dust per egg (avg size, incl. mutations)`;
     $eggBreak.innerHTML = rows.map(r =>
-      `<tr><td>${r.pet} <span class="pill">${r.pct}%</span></td><td>${fmt(r.da)} each</td></tr>`).join('') + mutRow;
+      `<tr><td>${petName(r.pet)} <span class="pill">${r.pct}%</span></td><td>${fmt(r.da)} each</td></tr>`).join('') + mutRow;
   }
 }
 $eggType.addEventListener('change', eggCalc);
@@ -497,12 +523,32 @@ function resetInitialState() {
   $projRow.style.display = 'none';
   $eggType.value = 'CommonEgg';
   $eggQty.value = '';
+  // Whatever was typed last time comes back, so a return visit picks up where it left off.
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
+    if (DATA[saved.species]) $species.value = saved.species;
+    for (const [el, key] of [[$currentDust,'dust'],[$weight,'weight'],[$str,'str'],[$maxStr,'maxStr'],[$eggQty,'eggQty']]) if (typeof saved[key] === 'string') el.value = saved[key];
+    if (EGGS[saved.eggType]) $eggType.value = saved.eggType;
+    if (['None','Gold','Rainbow'].includes(saved.mutation)) {
+      mutation = saved.mutation;
+      [...$mut.children].forEach(b => b.classList.toggle('on', b.dataset.m === mutation));
+    }
+  } catch (_) {}
   calc();
   eggCalc();
 }
 
+const SAVE_KEY = 'mg-magic-dust';
+function saveInputs() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ species:$species.value, dust:$currentDust.value, weight:$weight.value, str:$str.value, maxStr:$maxStr.value, eggQty:$eggQty.value, eggType:$eggType.value, mutation }));
+  } catch (_) {}
+}
+document.addEventListener('input', saveInputs);
+document.addEventListener('change', saveInputs);
+$mut.addEventListener('click', saveInputs);
+
 resetInitialState();
-window.addEventListener('pageshow', resetInitialState);
 </script>
 </body>
 </html>
